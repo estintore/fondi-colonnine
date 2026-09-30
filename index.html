@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bonus colonnine · fondi rimasti</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#E9EFEC; --panel:#F7FAF8; --ink:#12262E; --muted:#56696F; --line:#C9D5D0;
+  --charge:#0E7C74; --charge-soft:#BFE3DC; --amber:#D99A00; --drain:#C4413F;
+  --font-d:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-b:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1C20; --panel:#16272C; --ink:#E4EEEA; --muted:#93A8A6; --line:#2A4046;
+    --charge:#3CC4B2; --charge-soft:#1C4A45; --amber:#F2C14E; --drain:#F07470;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1C20; --panel:#16272C; --ink:#E4EEEA; --muted:#93A8A6; --line:#2A4046;
+  --charge:#3CC4B2; --charge-soft:#1C4A45; --amber:#F2C14E; --drain:#F07470;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-b);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 20px 60px}
+a{color:var(--charge)}
+header.top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:28px}
+header.top h1{font-family:var(--font-d);font-weight:600;font-size:1.05rem;margin:0;letter-spacing:.01em}
+#syncState{color:var(--muted);font-size:.85rem}
+
+/* HERO: the battery */
+.hero{display:grid;grid-template-columns:1fr;gap:18px;margin-bottom:34px}
+.amount{font-family:var(--font-d);font-weight:800;font-size:clamp(3rem,10vw,6.4rem);line-height:.9;letter-spacing:-.035em;font-variant-numeric:tabular-nums;margin:0}
+.amount small{font-size:.4em;font-weight:600;letter-spacing:0;margin-left:.15em;color:var(--muted)}
+.battery{position:relative;display:flex;align-items:center;gap:6px}
+.cell{flex:1;height:64px;border:3px solid var(--ink);border-radius:14px;padding:5px;position:relative;overflow:hidden;background:var(--panel)}
+.fill{height:100%;border-radius:8px;background:var(--charge);width:0;transition:width 1.2s cubic-bezier(.2,.8,.2,1),background .4s}
+.fill.low{background:var(--amber)} .fill.crit{background:var(--drain)}
+.cell .pct{position:absolute;inset:0;display:flex;align-items:center;padding-left:18px;font-family:var(--font-d);font-weight:800;font-size:1.5rem;color:var(--bg);mix-blend-mode:normal}
+.cell .pct.out{color:var(--ink)}
+.nub{width:12px;height:28px;background:var(--ink);border-radius:0 5px 5px 0}
+.forecast{font-family:var(--font-d);font-size:clamp(1.15rem,2.6vw,1.55rem);font-weight:400;max-width:34ch;margin:0;line-height:1.3}
+.forecast b{font-weight:800}
+.gaugeNote{color:var(--muted);font-size:.85rem;margin:-8px 0 0}
+@media (prefers-reduced-motion:reduce){.fill{transition:none}}
+
+/* today's reading */
+.entry{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px 20px;display:grid;gap:12px;margin-bottom:34px}
+.entry.due{border:2px solid var(--amber)}
+.entry h2{margin:0;font-family:var(--font-d);font-size:1.15rem;font-weight:600}
+.entry p{margin:0;color:var(--muted);font-size:.92rem;max-width:70ch}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input[type=text],input[type=date],input[type=number],select{font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+input.big{font-family:var(--font-d);font-size:1.25rem;font-weight:600;width:14ch;font-variant-numeric:tabular-nums}
+button,.btn{font:inherit;font-weight:700;border-radius:10px;padding:10px 16px;border:1.5px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+button.ghost,.btn.ghost{background:transparent;color:var(--ink)}
+button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+#msg{font-size:.9rem;min-height:1.4em}
+#msg.err{color:var(--drain)}
+
+/* figures */
+.figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0;border-top:2px solid var(--ink);margin-bottom:40px}
+.fig{padding:14px 16px 16px 0;border-bottom:1px solid var(--line)}
+.fig .v{font-family:var(--font-d);font-weight:800;font-size:1.6rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.fig .k{color:var(--muted);font-size:.88rem}
+.fig .v.neg{color:var(--drain)}
+
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:22px;margin-bottom:40px}
+.chart{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px 16px 10px}
+.chart.wide{grid-column:1/-1}
+.chart h3{margin:0 0 2px;font-family:var(--font-d);font-size:1.05rem;font-weight:600}
+.chart p{margin:0 0 10px;color:var(--muted);font-size:.85rem}
+.canvasBox{position:relative;height:280px}
+.chart.wide .canvasBox{height:340px}
+.empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:.92rem;text-align:center;padding:0 20px}
+
+section.more{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:22px}
+section.more h2{font-family:var(--font-d);font-size:1.15rem;font-weight:600;margin:0 0 10px}
+.tableBox{overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:.93rem}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{position:sticky;top:0;background:var(--panel);font-weight:700;color:var(--muted)}
+td button{padding:3px 9px;font-size:.8rem}
+.settings{display:grid;gap:14px}
+.settings label{display:grid;gap:4px;font-size:.92rem}
+.settings label span{color:var(--muted);font-size:.83rem}
+footer{margin-top:40px;color:var(--muted);font-size:.83rem;max-width:75ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Bonus colonnine domestiche · fondi Invitalia</h1>
+    <span id="syncState">Caricamento dati…</span>
+  </header>
+
+  <section class="hero" aria-live="polite">
+    <p class="amount" id="heroAmount">—</p>
+    <div class="battery" aria-hidden="true">
+      <div class="cell"><div class="fill" id="fill"></div><span class="pct" id="pct"></span></div>
+      <div class="nub"></div>
+    </div>
+    <p class="gaugeNote" id="gaugeNote"></p>
+    <p class="forecast" id="forecast">Aggiungi le rilevazioni per vedere quando finiranno i fondi.</p>
+  </section>
+
+
+  <div class="figs" id="figs"></div>
+
+  <div class="charts">
+    <div class="chart wide"><h3>Fondi disponibili e proiezione</h3><p>Linea continua: rilevazioni. Tratteggio: proiezione al ritmo attuale, con scenario lento e veloce.</p><div class="canvasBox" id="box1"><canvas id="c1"></canvas></div></div>
+    <div class="chart"><h3>Fondi usati ogni giorno</h3><p>Barre: importo prenotato al giorno. Linea: media mobile su 7 giorni.</p><div class="canvasBox" id="box2"><canvas id="c2"></canvas></div></div>
+    <div class="chart"><h3>Totale usato dall'inizio del monitoraggio</h3><p>Somma dei fondi usati dalla prima rilevazione.</p><div class="canvasBox" id="box3"><canvas id="c3"></canvas></div></div>
+    <div class="chart"><h3>Consumo medio per giorno della settimana</h3><p>Utile per capire se nel fine settimana le domande rallentano.</p><div class="canvasBox" id="box4"><canvas id="c4"></canvas></div></div>
+    <div class="chart"><h3>Giorni rimanenti stimati, nel tempo</h3><p>Come è cambiata la previsione di esaurimento a ogni nuova rilevazione.</p><div class="canvasBox" id="box5"><canvas id="c5"></canvas></div></div>
+  </div>
+
+  <section class="more">
+    <div>
+      <h2>Rilevazioni</h2>
+      <div class="tableBox"><table><thead><tr><th>Data</th><th>Disponibili</th><th>Usati</th></tr></thead><tbody id="tbody"></tbody></table></div>
+    </div>
+    <div class="settings">
+      <h2>Impostazioni</h2>
+      <label>Dotazione totale della misura (€)
+        <span>Facoltativa. Se la inserisci, la batteria mostra la percentuale rispetto al totale; altrimenti rispetto alla prima rilevazione.</span>
+        <input type="text" inputmode="decimal" id="inTotal" placeholder="es. 20.000.000">
+      </label>
+      <label>Periodo usato per la previsione
+        <select id="inWindow">
+          <option value="7">Ultimi 7 giorni</option>
+          <option value="14">Ultimi 14 giorni</option>
+          <option value="30">Ultimi 30 giorni</option>
+          <option value="0">Tutte le rilevazioni</option>
+        </select>
+      </label>
+      <div class="row">
+        <button class="ghost" id="saveSettings">Salva impostazioni</button>
+        <a class="btn ghost" href="data.csv" download="fondi-colonnine.csv">Scarica data.csv</a>
+        <a class="btn ghost" href="https://app.powerbi.com/view?r=eyJrIjoiM2ViMmVmYjctZmU2NS00YjFkLWE0MzQtZDdmZjdlZjhjNmM2IiwidCI6ImFmZDBhNzVjLTg2NzEtNGNjZS05MDYxLTJjYTBkOTJlNDIyZiIsImMiOjh9" target="_blank" rel="noopener">Apri dashboard Invitalia</a>
+      </div>
+      <p style="margin:0;color:var(--muted);font-size:.85rem">Le impostazioni restano salvate in questo browser.</p>
+    </div>
+  </section>
+
+  <footer>I dati vengono letti ogni sera in automatico dalla dashboard pubblica di Invitalia da un workflow GitHub Actions. La previsione è una stima lineare sul ritmo recente: rifinanziamenti, chiusure dello sportello o picchi di domande possono cambiarla.</footer>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const eur = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
+const eurShort = n => { const a=Math.abs(n); if(a>=1e6) return (n/1e6).toLocaleString('it-IT',{maximumFractionDigits:2})+' mln €'; if(a>=1e3) return (n/1e3).toLocaleString('it-IT',{maximumFractionDigits:0})+'k €'; return Math.round(n)+' €'; };
+const pad = n => String(n).padStart(2,'0');
+const todayStr = () => { const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const dayNum = s => { const [y,m,d]=s.split('-').map(Number); return Math.round(Date.UTC(y,m-1,d)/864e5); };
+const fromDayNum = n => new Date(n*864e5);
+const fmtDay = n => fromDayNum(n).toLocaleDateString('it-IT',{day:'numeric',month:'short',timeZone:'UTC'});
+const fmtLong = n => fromDayNum(n).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
+const parseEuro = s => { if(s==null) return NaN; s=String(s).replace(/[€\s]/g,''); if(!s) return NaN;
+  if(s.includes(',')) s=s.replace(/\./g,'').replace(',','.'); else if((s.match(/\./g)||[]).length>1 || /\.\d{3}$/.test(s)) s=s.replace(/\./g,'');
+  return Number(s); };
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+const state = { readings:[], settings:{window:14,total:null} };
+const charts = {};
+
+/* ---------- data ---------- */
+const LS='colonnine-impostazioni-v1';
+function loadSettings(){ try{ Object.assign(state.settings, JSON.parse(localStorage.getItem(LS)||'{}')); }catch(e){} }
+function persistSettings(){ try{ localStorage.setItem(LS, JSON.stringify(state.settings)); }catch(e){} }
+async function loadData(){
+  try{
+    const res=await fetch('data.csv?t='+Date.now(),{cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const txt=await res.text();
+    state.readings=txt.split(/\r?\n/).map(l=>l.trim().match(/^(\d{4}-\d{2}-\d{2})\s*[;,]\s*([\d.]+)$/)).filter(Boolean).map(m=>({date:m[1],amount:Number(m[2])}));
+    const last=[...state.readings].sort((x,y)=>x.date<y.date?-1:1).pop();
+    $('syncState').textContent= last ? `Aggiornato in automatico · ultimo dato ${fmtLong(dayNum(last.date))}` : 'Nessun dato ancora';
+  }catch(e){ $('syncState').textContent='Impossibile leggere data.csv ('+e.message+')'; }
+  render();
+}
+
+/* ---------- analysis ---------- */
+function analyse(){
+  const rs=[...state.readings].sort((a,b)=>a.date<b.date?-1:1).map(r=>({...r,d:dayNum(r.date)}));
+  const out={rs, intervals:[], last:rs[rs.length-1]||null, first:rs[0]||null};
+  for(let i=1;i<rs.length;i++){
+    const gap=rs[i].d-rs[i-1].d; const used=rs[i-1].amount-rs[i].amount;
+    out.intervals.push({d:rs[i].d, gap, used, rate:used/gap});
+  }
+  if(rs.length<2) return out;
+  const w=Number(state.settings.window)||0;
+  const lastD=out.last.d;
+  let pts=w? rs.filter(r=>r.d>=lastD-w) : rs;
+  if(pts.length<2) pts=rs.slice(-2);
+  // least squares on (d, amount)
+  const n=pts.length, mx=pts.reduce((s,p)=>s+p.d,0)/n, my=pts.reduce((s,p)=>s+p.amount,0)/n;
+  let sxy=0,sxx=0; pts.forEach(p=>{sxy+=(p.d-mx)*(p.amount-my); sxx+=(p.d-mx)**2;});
+  const slope=sxx?sxy/sxx:0; // €/day (negative = spending)
+  out.rate=-slope;
+  const winInts=out.intervals.filter(x=>x.d>pts[0].d);
+  const rates=winInts.map(x=>x.rate).sort((a,b)=>a-b);
+  const q=p=>{ if(!rates.length) return out.rate; const i=(rates.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i); return rates[lo]+(rates[hi]-rates[lo])*(i-lo); };
+  out.rateSlow=Math.max(q(.25),0); out.rateFast=Math.max(q(.75),out.rate);
+  if(out.rateSlow>out.rate) out.rateSlow=out.rate;
+  const days=r=> r>0 ? out.last.amount/r : Infinity;
+  out.daysLeft=days(out.rate); out.daysFast=days(out.rateFast); out.daysSlow=days(out.rateSlow);
+  out.usedTotal=out.first.amount-out.last.amount;
+  out.lastInt=out.intervals[out.intervals.length-1];
+  // history of forecast: for each reading from index 2, projected days left using all data up to it (window)
+  out.forecastHist=[];
+  for(let i=1;i<rs.length;i++){
+    const sub=rs.slice(0,i+1), ld=sub[sub.length-1].d; let p=w?sub.filter(r=>r.d>=ld-w):sub; if(p.length<2)p=sub.slice(-2);
+    const n2=p.length,mx2=p.reduce((s,x)=>s+x.d,0)/n2,my2=p.reduce((s,x)=>s+x.amount,0)/n2; let a=0,b=0; p.forEach(x=>{a+=(x.d-mx2)*(x.amount-my2);b+=(x.d-mx2)**2;});
+    const r=b?-a/b:0; out.forecastHist.push({d:ld, days: r>0? sub[sub.length-1].amount/r : null});
+  }
+  return out;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const A=analyse();
+  renderHero(A); renderFigs(A); renderTable(A); renderCharts(A);
+}
+function renderHero(A){
+  if(!A.last){ $('heroAmount').innerHTML='Nessun dato'; $('fill').style.width='0'; $('pct').textContent=''; $('gaugeNote').textContent=''; return; }
+  $('heroAmount').innerHTML=Math.round(A.last.amount).toLocaleString('it-IT')+'<small>€</small>';
+  const total=Number(state.settings.total)||0; const base= total>0? total : A.rs.reduce((m,r)=>Math.max(m,r.amount),0);
+  const pct=Math.max(0,Math.min(100, base? A.last.amount/base*100 : 100));
+  requestAnimationFrame(()=>{ $('fill').style.width=pct+'%'; });
+  $('fill').className='fill'+(pct<10?' crit':pct<30?' low':'');
+  const lbl=$('pct'); lbl.textContent=pct.toLocaleString('it-IT',{maximumFractionDigits:1})+'%'; lbl.className='pct'+(pct<18?' out':''); if(pct<18) lbl.style.paddingLeft=`calc(${pct}% + 24px)`; else lbl.style.paddingLeft='18px';
+  $('gaugeNote').textContent= total>0 ? `Percentuale rimasta sulla dotazione di ${eur(total)} · rilevato ${fmtLong(A.last.d)}` : `Percentuale rispetto al valore più alto rilevato · rilevato ${fmtLong(A.last.d)}`;
+  const f=$('forecast');
+  if(A.rs.length<2){ f.textContent='Serve almeno una seconda rilevazione, in un altro giorno, per stimare il ritmo di consumo.'; return; }
+  if(!(A.rate>0)){ f.innerHTML='Nel periodo scelto i fondi <b>non stanno calando</b>: nessuna data di esaurimento prevedibile.'; return; }
+  const end=A.last.d+Math.ceil(A.daysLeft);
+  const lo=A.last.d+Math.ceil(A.daysFast), hi=isFinite(A.daysSlow)?A.last.d+Math.ceil(A.daysSlow):null;
+  f.innerHTML=`Al ritmo di <b>${eur(A.rate)} al giorno</b> i fondi finiscono intorno al <b>${fmtLong(end)}</b>, tra circa ${Math.ceil(A.daysLeft)} giorni.`+
+    (lo!==end||hi!==end? ` Forchetta: tra il ${fmtDay(lo)} e ${hi?'il '+fmtDay(hi):'una data non stimabile'}.`:'');
+}
+function renderFigs(A){
+  const fig=(v,k,cls='')=>`<div class="fig"><div class="v ${cls}">${v}</div><div class="k">${k}</div></div>`;
+  if(!A.last){ $('figs').innerHTML=''; return; }
+  const total=Number(state.settings.total)||0;
+  let h='';
+  h+=fig(A.lastInt? eur(A.lastInt.used):'—', A.lastInt? (A.lastInt.gap===1?'usati rispetto a ieri':`usati negli ultimi ${A.lastInt.gap} giorni`):'usati dall\'ultima rilevazione', A.lastInt&&A.lastInt.used<0?'neg':'');
+  h+=fig(A.rs.length>1? eur(A.usedTotal):'—', `usati dal ${fmtDay(A.first.d)}`);
+  h+=fig(A.rate>0? eur(A.rate):'—', 'media giornaliera nel periodo di previsione');
+  h+=fig(A.rate>0? eur(A.rate*7):'—', 'consumo stimato a settimana');
+  if(total>0) h+=fig(((total-A.last.amount)/total*100).toLocaleString('it-IT',{maximumFractionDigits:1})+'%', `della dotazione già usata (${eurShort(total-A.last.amount)})`);
+  const big=A.intervals.filter(i=>i.gap===1).sort((a,b)=>b.used-a.used)[0];
+  if(big) h+=fig(eur(big.used), `giorno record: ${fmtDay(big.d)}`);
+  h+=fig(A.rate>0? Math.ceil(A.daysLeft):'—', 'giorni rimanenti stimati');
+  $('figs').innerHTML=h;
+}
+function renderTable(A){
+  const rows=[...A.rs].reverse().map((r,i,arr)=>{ const prev=arr[i+1]; const used=prev? prev.amount-r.amount : null;
+    return `<tr><td>${fromDayNum(r.d).toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'})}</td><td>${eur(r.amount)}</td><td>${used==null?'—':eur(used)}</td></tr>`; }).join('');
+  $('tbody').innerHTML= rows || '<tr><td colspan="3" style="text-align:left;color:var(--muted)">Nessuna rilevazione in data.csv.</td></tr>';
+}
+
+function baseOpts(extra={}){
+  const ink=cssVar('--muted'), line=cssVar('--line');
+  return Object.assign({responsive:true,maintainAspectRatio:false,animation:{duration:400},interaction:{mode:'nearest',intersect:false},
+    plugins:{legend:{display:false,labels:{color:ink,boxWidth:14,font:{family:'Atkinson Hyperlegible'}}},tooltip:{}},
+    scales:{x:{grid:{color:line},ticks:{color:ink,font:{family:'Atkinson Hyperlegible'}}},y:{grid:{color:line},ticks:{color:ink,font:{family:'Atkinson Hyperlegible'},callback:v=>eurShort(v)}}}},extra);
+}
+function mount(id,boxId,cfg,hasData,emptyMsg){
+  if(charts[id]){ charts[id].destroy(); delete charts[id]; }
+  const box=$(boxId);
+  if(!hasData){ box.innerHTML=`<div class="empty">${emptyMsg}</div>`; return; }
+  if(!box.querySelector('canvas')) box.innerHTML=`<canvas id="${id}"></canvas>`;
+  if(typeof Chart==='undefined'){ box.innerHTML='<div class="empty">Impossibile caricare la libreria dei grafici.</div>'; return; }
+  charts[id]=new Chart($(id),cfg);
+}
+function renderCharts(A){
+  const C=cssVar('--charge'), Am=cssVar('--amber'), Dr=cssVar('--drain'), Soft=cssVar('--charge-soft'), Ink=cssVar('--ink');
+  const xDay={type:'linear',ticks:{callback:v=>fmtDay(v),maxTicksLimit:8,color:cssVar('--muted')},grid:{color:cssVar('--line')}};
+  const tipTitle=items=>items.length?fmtLong(Math.round(items[0].parsed.x)):'';
+
+  // 1 funds + projection
+  const ds=[{label:'Disponibili',data:A.rs.map(r=>({x:r.d,y:r.amount})),borderColor:C,backgroundColor:C,borderWidth:3,pointRadius:A.rs.length>40?0:3,tension:.15}];
+  if(A.rate>0){
+    const L=A.last; const mk=(r,col,label,w)=>({label,data:[{x:L.d,y:L.amount},{x:L.d+L.amount/r,y:0}],borderColor:col,borderDash:[6,5],borderWidth:w,pointRadius:0});
+    ds.push(mk(A.rate,Ink,'Proiezione',2));
+    if(A.rateFast>A.rate) ds.push(mk(A.rateFast,Dr,'Scenario veloce',1.5));
+    if(A.rateSlow>0 && A.rateSlow<A.rate) ds.push(mk(A.rateSlow,Am,'Scenario lento',1.5));
+  }
+  const o1=baseOpts(); o1.scales.x=xDay; o1.scales.y.min=0; o1.plugins.legend.display=true; o1.plugins.tooltip={callbacks:{title:tipTitle,label:c=>`${c.dataset.label}: ${eur(c.parsed.y)}`}};
+  mount('c1','box1',{type:'line',data:{datasets:ds},options:o1},A.rs.length>0,'Nessuna rilevazione ancora.');
+
+  // 2 daily use + 7d MA (spread multi-day gaps evenly)
+  const daily=[]; A.intervals.forEach(it=>{ for(let k=it.gap-1;k>=0;k--) daily.push({x:it.d-k,y:it.rate,est:it.gap>1}); });
+  const ma=daily.map((p,i)=>{ const s=daily.filter(q=>q.x>p.x-7&&q.x<=p.x); return {x:p.x,y:s.reduce((a,b)=>a+b.y,0)/s.length}; });
+  const o2=baseOpts(); o2.scales.x=Object.assign({},xDay,{offset:true}); o2.plugins.tooltip={callbacks:{title:tipTitle,label:c=>`${c.dataset.label}: ${eur(c.parsed.y)}${c.raw.est?' (stima, giorni senza rilevazione)':''}`}};
+  mount('c2','box2',{data:{datasets:[
+    {type:'bar',label:'Usati',data:daily,backgroundColor:daily.map(p=>p.y<0?Am:(p.est?Soft:C)),barPercentage:1,categoryPercentage:.85},
+    {type:'line',label:'Media 7 giorni',data:ma,borderColor:Ink,borderWidth:2,pointRadius:0,tension:.3}]},options:o2},daily.length>0,'Servono almeno due giorni di rilevazioni.');
+
+  // 3 cumulative
+  let cum=0; const cumData=[{x:A.first?A.first.d:0,y:0}].concat(A.intervals.map(it=>({x:it.d,y:(cum+=it.used)})));
+  const o3=baseOpts(); o3.scales.x=xDay; o3.plugins.tooltip={callbacks:{title:tipTitle,label:c=>eur(c.parsed.y)}};
+  mount('c3','box3',{type:'line',data:{datasets:[{label:'Totale usato',data:cumData,borderColor:C,backgroundColor:Soft,fill:true,borderWidth:2.5,pointRadius:0,tension:.15}]},options:o3},A.intervals.length>0,'Servono almeno due giorni di rilevazioni.');
+
+  // 4 weekday
+  const names=['lun','mar','mer','gio','ven','sab','dom']; const sums=Array(7).fill(0), cnt=Array(7).fill(0);
+  A.intervals.filter(i=>i.gap===1).forEach(i=>{ const wd=(fromDayNum(i.d).getUTCDay()+6)%7; sums[wd]+=i.used; cnt[wd]++; });
+  const avg=sums.map((s,i)=>cnt[i]?s/cnt[i]:0);
+  const o4=baseOpts(); o4.scales.x={grid:{display:false},ticks:{color:cssVar('--muted')}}; o4.plugins.tooltip={callbacks:{label:c=>`${eur(c.parsed.y)} in media (${cnt[c.dataIndex]} giorni)`}};
+  mount('c4','box4',{type:'bar',data:{labels:names,datasets:[{data:avg,backgroundColor:names.map((_,i)=>i>=5?Am:C),borderRadius:6}]},options:o4},cnt.some(Boolean),'Servono rilevazioni in giorni consecutivi.');
+
+  // 5 forecast history
+  const fh=(A.forecastHist||[]).filter(p=>p.days!=null&&isFinite(p.days)).map(p=>({x:p.d,y:Math.round(p.days)}));
+  const o5=baseOpts(); o5.scales.x=xDay; o5.scales.y.ticks.callback=v=>v+' gg'; o5.scales.y.min=0; o5.plugins.tooltip={callbacks:{title:tipTitle,label:c=>`${c.parsed.y} giorni rimanenti (fine ≈ ${fmtDay(c.parsed.x+c.parsed.y)})`}};
+  mount('c5','box5',{type:'line',data:{datasets:[{data:fh,borderColor:Dr,backgroundColor:Dr,borderWidth:2,pointRadius:3,stepped:false}]},options:o5},fh.length>0,'La previsione compare dalla seconda rilevazione.');
+}
+
+/* ---------- actions ---------- */
+function fillSettings(){ $('inTotal').value=state.settings.total? Number(state.settings.total).toLocaleString('it-IT'):''; $('inWindow').value=String(state.settings.window??14); }
+$('saveSettings').addEventListener('click',()=>{
+  const t=parseEuro($('inTotal').value); state.settings={window:Number($('inWindow').value),total:isFinite(t)&&t>0?t:null};
+  persistSettings(); render();
+});
+$('inWindow').addEventListener('change',()=>{ state.settings.window=Number($('inWindow').value); persistSettings(); render(); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>render());
+
+/* ---------- boot ---------- */
+loadSettings(); fillSettings(); render(); loadData();
+})();
+</script>
+</body>
+</html>
