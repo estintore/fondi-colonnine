@@ -15,12 +15,18 @@ concurrency:
 
 jobs:
   rileva:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - name: Controlla che i file siano al posto giusto
+        run: |
+          ls -la
+          test -f requirements.txt || { echo "::error::requirements.txt non è nella radice del repository"; exit 1; }
+          test -f scraper/scrape.py || { echo "::error::scraper/scrape.py non è nella radice del repository"; exit 1; }
+
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -39,7 +45,7 @@ jobs:
 
       - name: Salva screenshot e dati di debug
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: debug
           path: debug/
