@@ -24,7 +24,7 @@ DATA = ROOT / "data.csv"
 DEBUG = ROOT / "debug"
 
 REPORT_URL = os.environ.get("REPORT_URL") or (
-    "https://app.powerbi.com/view?r=eyJrIjoiM2ViMmVmYjctZmU2NS00YjFkLWE0MzQtZDdmZjdlZjhjNmM2IiwidCI6ImFmZDBhNzVjLTg2NzEtNGNjZS05MDYxLTJjYTBkOTJlNDIyZiIsImMiOjh9",
+    "https://app.powerbi.com/view?r=eyJrIjoiM2ViMmVmYjctZmU2NS00YjFkLWE0MzQtZDdmZjdlZjhjNmM2IiwidCI6ImFmZDBhNzVjLTg2NzEtNGNjZS05MDYxLTJjYTBkOTJlNDIyZiIsImMiOjh9"
 )
 KEYWORD = (os.environ.get("KEYWORD") or "disponibil").lower()
 TZ = ZoneInfo("Europe/Rome")
