@@ -15,6 +15,7 @@ import json
 import os
 import re
 import sys
+import traceback
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -119,14 +120,18 @@ EXTRACT_JS = """
 async def scrape_once() -> tuple[float, list[dict], str]:
     from playwright.async_api import async_playwright
 
-    DEBUG.mkdir(exist_ok=True)
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         page = await browser.new_page(
             viewport={"width": 1600, "height": 1000}, locale="it-IT", timezone_id="Europe/Rome"
         )
-        await page.goto(REPORT_URL, wait_until="domcontentloaded", timeout=90_000)
         cands: list[dict] = []
+        blocks: list[dict] = []
+        try:
+            await page.goto(REPORT_URL, wait_until="domcontentloaded", timeout=90_000)
+        except Exception:
+            await page.screenshot(path=str(DEBUG / "dashboard-errore.png"), full_page=True)
+            raise
         # la dashboard carica i dati in modo asincrono: riprova per ~60 s
         for _ in range(20):
             await page.wait_for_timeout(3_000)
@@ -174,6 +179,8 @@ def write_value(date: str, value: float) -> None:
 
 
 async def main() -> int:
+    DEBUG.mkdir(exist_ok=True)
+    (DEBUG / "avvio.txt").write_text(f"Python {sys.version}\nURL {REPORT_URL}\nKEYWORD {KEYWORD}\n")
     last_err = None
     for attempt in range(1, 4):
         try:
@@ -189,7 +196,10 @@ async def main() -> int:
             return 0
         except Exception as e:  # noqa: BLE001
             last_err = e
-            print(f"Tentativo {attempt} non riuscito: {e}", file=sys.stderr)
+            tb = traceback.format_exc()
+            print(f"Tentativo {attempt} non riuscito:\n{tb}", file=sys.stderr)
+            with (DEBUG / "errori.txt").open("a", encoding="utf-8") as f:
+                f.write(f"--- tentativo {attempt} ---\n{tb}\n")
             await asyncio.sleep(10)
     print(f"Lettura non riuscita: {last_err}. Guarda gli artifact 'debug' del workflow.", file=sys.stderr)
     return 1
